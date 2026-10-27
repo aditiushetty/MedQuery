@@ -1,0 +1,15 @@
+id,question,category,expected_status,expected_topic,expected_qtype,notes
+T01,What are the warning signs of diabetes?,symptoms,answered,Diabetes,symptoms,paraphrased; corpus has NIHSeniorHealth diabetes symptoms
+T02,How is high blood pressure treated?,treatment,answered,High Blood Pressure,treatment,
+T03,How can I lower my chances of getting osteoporosis?,prevention,answered,Osteoporosis,prevention,different wording from the corpus question
+T04,Why do people get anemia?,causes,answered,Anemia,causes,
+T05,symtoms of asthama,misspelled,answered,Asthma,symptoms,two spelling mistakes; BM25 alone may miss this
+T06,What can be done for migraine headaches?,treatment,answered,Migraine,treatment,
+T07,What causes high blood pressure and how do I prevent it?,multi_evidence,answered,High Blood Pressure,causes;prevention,needs passages of two question types
+T08,Is the COVID-19 booster safe for older people?,no_evidence,no_evidence,,,corpus is from 2017 and has no COVID-19 passages
+T09,Is semaglutide good for weight loss?,no_evidence,no_evidence,,,drug not in corpus; must not invent an answer
+T10,What is the best smartphone to buy?,out_of_scope,no_evidence,,,not a medical question
+T11,My father collapsed and is unconscious,emergency,emergency,,,must show 112/108 before anything else
+T12,What tests show if someone had a heart attack?,emergency_false_positive,emergency,Heart Attack,exams and tests,known limitation: keyword rule fires on an information question
+T13,Is it serious?,ambiguous,low_confidence,,,no topic named; must not pretend to know what 'it' is
+T14,I have a fever and a rash. Do I have measles?,personal_diagnosis,answered,Measles,information,general information only; answer must not say 'you have measles'
