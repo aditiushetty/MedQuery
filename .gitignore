@@ -8,3 +8,4 @@ data/raw/
 models/
 *.npy
 .env
+data/processed/corpus.jsonl

@@ -19,6 +19,14 @@ Windows (PowerShell):
     .venv\Scripts\Activate.ps1
     pip install -r requirements.txt
 
+## Build the knowledge base (once, about 1 minute)
+
+    git clone --depth 1 https://github.com/abachaa/MedQuAD.git data/raw/medquad
+    python scripts/prepare_corpus.py
+    python scripts/validate_corpus.py
+
+The corpus file is not stored in Git (28 MB); everyone builds it with these commands. See `docs/datasets.md`.
+
 ## Run
 
 Two terminals, both in this folder with the venv active:
@@ -42,12 +50,13 @@ API test page: http://127.0.0.1:8000/docs
 | Chat interface with loading and error states | Member 4 | ✅ |
 | Emergency keyword check (112 / 108) | Member 3 | ✅ (keyword rule, not triage) |
 | No-evidence fallback and disclaimer | Member 3 | ✅ |
-| Medical corpus (MedQuAD) | Member 1 | ⏳ |
+| Medical corpus (MedQuAD, 23,070 passages, validated) | Member 1 | ✅ |
 | BM25 retrieval | Member 3 | ⏳ (stub returns nothing) |
 | Semantic and hybrid retrieval | Member 3 | ⏳ |
 | Intent classification (rules, then DistilBERT) | Member 2 | ⏳ (stub returns "general") |
 | Answer built from retrieved sentences with sources | Member 3 | ⏳ |
-| Test set and evaluation results | Member 1, Member 4 | ⏳ |
+| Test set | Member 1 | 🟡 (14 of 40 questions) |
+| Evaluation results | Member 4 | ⏳ |
 
 ## Who owns what
 
