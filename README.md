@@ -51,12 +51,14 @@ API test page: http://127.0.0.1:8000/docs
 | Emergency keyword check (112 / 108) | Member 3 | ✅ (keyword rule, not triage) |
 | No-evidence fallback and disclaimer | Member 3 | ✅ |
 | Medical corpus (MedQuAD, 23,070 passages, validated) | Member 1 | ✅ |
-| BM25 retrieval | Member 3 | ⏳ (stub returns nothing) |
+| BM25 retrieval, with spelling correction and condition (topic) recognition | Member 3 | ✅ |
 | Semantic and hybrid retrieval | Member 3 | ⏳ |
 | Intent classification (rules, then DistilBERT) | Member 2 | ⏳ (stub returns "general") |
-| Answer built from retrieved sentences with sources | Member 3 | ⏳ |
+| Extractive answer: copied sentences with [n] citations, checked by a test | Member 3 | ✅ |
+| Evidence check: coverage score and thresholds -> answered / low confidence / no evidence | Member 3 | 🟡 (word matching, tuned on 32 questions) |
 | Test set | Member 1 | 🟡 (14 of 40 questions) |
-| Evaluation results | Member 4 | ⏳ |
+| Evaluation script (`eval/run_eval.py`) | Member 4 | ✅ |
+| Evaluation on held-out questions | Member 4 | ⏳ |
 
 ## Who owns what
 
