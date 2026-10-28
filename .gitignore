@@ -9,3 +9,4 @@ models/
 *.npy
 .env
 data/processed/corpus.jsonl
+data/processed/research.jsonl
