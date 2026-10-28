@@ -87,3 +87,50 @@ def test_personal_diagnosis_question_gets_no_diagnosis():
     body = ask("I have a fever and a rash. Do I have measles?")
     assert "can't tell whether this applies to you" in body["answer"]
     assert "you have measles" not in body["answer"].lower()
+
+
+def test_medical_terms_are_recognised_and_returned():
+    body = ask("How is high blood pressure treated?")
+    assert [(e["text"], e["name"], e["mesh_id"]) for e in body["entities"]] == [
+        ("high blood pressure", "Hypertension", "D006973")]
+
+
+@pytest.mark.parametrize("question, topic", [
+    ("what is myocardial infarction", "Heart Attack"),   # MeSH synonym of our topic name
+    ("I have loose motions and fever", "Diarrhea"),      # Indian English, from lay_terms.csv
+])
+def test_mesh_synonyms_find_the_corpus_topic(question, topic):
+    body = ask(question)
+    assert body["status"] == "answered"
+    assert body["sources"][0]["title"].startswith(topic)
+
+
+def test_concept_missing_from_sources_still_gets_no_evidence():
+    body = ask("Is the COVID-19 booster safe for older people?")
+    assert body["status"] == "no_evidence"
+    assert body["entities"][0]["name"] == "COVID-19"   # recognised, but we have no passages
+
+
+def test_related_research_is_about_the_condition_and_labelled():
+    body = ask("symtoms of asthama")
+    assert body["research"]
+    for study in body["research"]:
+        assert study["decision"] in {"yes", "no", "maybe"}
+        assert study["url"].startswith("https://pubmed.ncbi.nlm.nih.gov/")
+
+
+def test_no_research_without_a_recognised_condition():
+    assert ask("Is it serious?")["research"] == []
+
+
+def test_question_about_chest_pain_is_answered_with_emergency_numbers_first():
+    body = ask("I am asking what might be the reason for chest pain")
+    assert body["status"] != "emergency"
+    assert body["answer"].startswith("**Is this happening")
+    assert "112" in body["answer"] and body["sources"]
+
+
+def test_misspelled_medical_term_is_corrected_and_normalised():
+    body = ask("what is myocardial infraction")      # typo of "infarction"
+    assert body["entities"][0]["name"] == "Myocardial Infarction"
+    assert body["sources"][0]["title"].startswith("Heart Attack")

@@ -14,12 +14,13 @@ def test_tokenize_drops_question_words_and_lemmatises():
 @pytest.mark.parametrize("typo, fixed", [
     ("symtoms", "symptom"), ("asthama", "asthma"), ("dibetes", "diabetes"),
     ("feaver", "fever"), ("pnemonia", "pneumonia"), ("hypertenshun", "hypertension"),
+    ("infraction", "infarction"),   # rare medical word, very close spelling
 ])
 def test_spelling_is_corrected_to_common_corpus_words(typo, fixed):
     assert retrieval.correct(typo) == ([fixed], [])
 
 
-@pytest.mark.parametrize("word", ["covid", "semaglutide", "cricket"])
+@pytest.mark.parametrize("word", ["covid", "semaglutide", "cricket", "engine"])
 def test_unknown_words_are_not_turned_into_other_diseases(word):
     words, unknown = retrieval.correct(word)
     assert unknown == [word]

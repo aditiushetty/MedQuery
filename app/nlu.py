@@ -1,9 +1,21 @@
-"""Query understanding (owner: Member 2).
+"""Query understanding.
 
-STUB for Milestone 1. It only cleans the text. Member 2 replaces the body of
-understand() with a rule-based intent baseline, then a DistilBERT classifier.
-Keep the function name and the returned keys exactly the same.
+Entities: medical terms in the question, normalised to MeSH with the same
+dictionary used to tag the knowledge base (app/mesh.py). This is a dictionary
+baseline for entity recognition, not a trained model.
+
+Intent: still a STUB ("general"). The next step replaces it with a rule-based
+baseline, then a DistilBERT classifier. Keep the returned keys the same.
 """
+from app import mesh
+
+
+def entities(text: str) -> list[dict]:
+    """MeSH concepts named in the text: {"text", "label", "mesh_id", "name"}."""
+    return [
+        {"text": f["text"], "label": f["branch"], "mesh_id": f["ui"], "name": f["name"]}
+        for f in mesh.find(text)
+    ]
 
 
 def understand(question: str) -> dict:
@@ -11,5 +23,5 @@ def understand(question: str) -> dict:
         "clean_query": " ".join(question.lower().split()),
         "intent": "general",
         "intent_confidence": 0.0,
-        "entities": [],  # list of {"text": str, "label": str}
+        "entities": entities(question),
     }

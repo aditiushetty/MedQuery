@@ -9,7 +9,7 @@ citations.
 | Part | File (built, not in Git) | Size | Used for |
 |---|---|---|---|
 | Patient information (MedQuAD) | `data/processed/corpus.jsonl` | 23,070 passages, 2.98 million words, 4,739 topics | Answers to patients |
-| Research evidence (PubMedQA) | `data/processed/research.jsonl` | 1,000 PubMed abstracts, 240,867 words, 1989-2017 | Stored; not yet shown in answers |
+| Research evidence (PubMedQA) | `data/processed/research.jsonl` | 1,000 PubMed abstracts, 240,867 words, 1989-2017 | "Related research" under answers |
 | Medical vocabulary (MeSH 2026) | `data/processed/mesh_terms.json` | 18,952 concepts, 115,342 terms, 427 acronyms | Entity normalisation (tags on every passage) |
 | Everyday terms (ours) | `data/lay_terms.csv` (in Git) | 22 terms | Words MeSH lacks: "flu", "piles", "loose motions" |
 
@@ -133,4 +133,4 @@ Diabetes Mellitus, Hypertension, Stroke, Fever, Anemia.
 - The data is from about 2017 or earlier: no COVID-19, no newer drugs. Such questions get the no-evidence answer.
 - No drug-information pages (removed for copyright), so medicine questions are poorly covered.
 - MeSH matching is a dictionary lookup: it does not understand negation ("no fever") and misses words not in MeSH or our lay list.
-- Research abstracts and MeSH tags are in the knowledge base but not yet used by search or answers.
+- Related research is matched by MeSH concept only: a study is shown because it is about the same condition, not because it answers the question.

@@ -59,13 +59,13 @@ API test page: http://127.0.0.1:8000/docs
 | Feature | Status |
 |---|---|
 | Knowledge base: MedQuAD patient passages (23,070) | ✅ |
-| Knowledge base: PubMedQA research abstracts (1,000) | ✅ stored; ⏳ not yet used in answers |
-| MeSH entity normalisation (18,952 concepts, every passage tagged) | ✅ stored; ⏳ not yet used in search |
+| Knowledge base: PubMedQA research abstracts (1,000) | ✅ shown as "Related research" (matched by MeSH), never as advice |
+| MeSH entity normalisation (18,952 concepts, every passage tagged) | ✅ terms in questions recognised and shown; synonyms searched by the corpus's own name |
 | Preprocessing: tokenisation, stopwords, WordNet lemmatisation | ✅ |
 | One-command build and validation (`scripts/build_kb.py`) | ✅ |
 | `/ask` API with request/response format | ✅ |
 | Chat interface with loading and error states | ✅ |
-| Emergency keyword check (112 / 108) | ✅ (keyword rule, not triage) |
+| Emergency check (112 / 108): urgent situations get only the emergency message; questions about urgent conditions are answered with the numbers first | ✅ (keyword rules, not triage) |
 | No-evidence fallback and disclaimer | ✅ |
 | BM25 retrieval, with spelling correction and condition (topic) recognition | ✅ |
 | Extractive answer: copied sentences with [n] citations, checked by a test | ✅ |
