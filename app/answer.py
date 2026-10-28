@@ -56,8 +56,9 @@ def _sentence_score(words: set[str], sentence: str) -> float:
 def build(words: list[str], passages: list[dict]) -> tuple[str, list[dict]]:
     """Return (answer_markdown, passages_used). Citation [n] = passages_used[n-1]."""
     # Answer about one condition at a time: the best passage's topic.
-    topic = passages[0]["topic"].lower()
-    chosen = [p for p in passages if p["topic"].lower() == topic][:MAX_PASSAGES]
+       # Same words after preprocessing = same topic ("Kidney Disease" / "Kidney Diseases").
+    topic = set(retrieval.tokenize(passages[0]["topic"]))
+    chosen = [p for p in passages if set(retrieval.tokenize(p["topic"])) == topic][:MAX_PASSAGES]
 
     query = set(words)
     candidates = []  # (score, passage_rank, position, sentence)
