@@ -12,46 +12,33 @@ The index is built once, the first time search() is called (a few seconds).
 import difflib
 import json
 import math
-import re
 from functools import lru_cache
 from pathlib import Path
 
 from rank_bm25 import BM25Okapi
 
-CORPUS = Path(__file__).resolve().parent.parent / "data" / "processed" / "corpus.jsonl"
+from app.preprocess import tokenize
 
-# Words that carry no medical meaning. Question words go too: every MedQuAD
-# title starts with "What is" or "What are", so they would match everything.
-STOPWORDS = set("""
-a an the and or of to in on for with without by from at as is are was were be been being
-do does did can could should would will may might must shall i me my we our you your he she
-it its they them their this that these those there here what which who whom whose when where
-why how if then than so not no yes about into over under again also just only very too more
-most some any all each both few other such own same s t get got have has had having
-""".split())
+CORPUS = Path(__file__).resolve().parent.parent / "data" / "processed" / "corpus.jsonl"
 
 # Words that say nothing about WHICH condition is meant ("Is it serious?").
 # A question made only of these cannot be answered from evidence.
-GENERIC = set("""
+# (Passed through tokenize() so they match lemmatised questions.)
+GENERIC = set(tokenize("""
 serious dangerous bad normal worse better ok okay safe common rare problem problems
 help happen happens mean means know tell thing things
-""".split())
+"""))
 
 
 # Words that say what KIND of question it is, not what it is about. They help
 # BM25 rank passages, but the evidence check (coverage) ignores them: a diabetes
 # passage that says "signs and symptoms" answers "warning signs of diabetes".
-QUESTION_CUES = set("""
+QUESTION_CUES = set(tokenize("""
 symptom symptoms sign signs warning early cause causes caused why risk risks chance chances
 treat treats treated treatment treatments cure cured manage managed therapy done
 prevent prevents prevented prevention avoid lower reduce stop
 diagnose diagnosed diagnosis test tests tested find out tell
-""".split())
-
-
-def tokenize(text: str) -> list[str]:
-    return [w for w in re.findall(r"[a-z0-9]+", text.lower()) if w not in STOPWORDS and len(w) > 1]
-
+"""))
 
 @lru_cache(maxsize=1)
 def _index() -> tuple[list[dict], BM25Okapi]:
@@ -147,10 +134,15 @@ def is_generic(query: str) -> bool:
 def _topics() -> dict[str, tuple[frozenset, list[int]]]:
     """Topic name (lower case) -> (its words, indexes of its passages)."""
     topics: dict[str, tuple[frozenset, list[int]]] = {}
+    by_words: dict[frozenset, str] = {}
     for i, p in enumerate(_index()[0]):
         name = p["topic"].lower()
+        words = frozenset(tokenize(name))
+        # Topics that are the same words after lemmatisation are one topic:
+        # "Kidney Disease" and "Kidney Diseases" share their passages.
+        name = by_words.setdefault(words, name) if words else name
         if name not in topics:
-            topics[name] = (frozenset(tokenize(name)), [])
+            topics[name] = (words, [])
         topics[name][1].append(i)
     return topics
 

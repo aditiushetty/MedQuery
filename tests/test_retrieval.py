@@ -7,13 +7,13 @@ if not retrieval.CORPUS.exists():
     pytest.skip("corpus not built; run scripts/prepare_corpus.py", allow_module_level=True)
 
 
-def test_tokenize_drops_question_words():
-    assert retrieval.tokenize("What are the symptoms of Asthma?") == ["symptoms", "asthma"]
+def test_tokenize_drops_question_words_and_lemmatises():
+    assert retrieval.tokenize("What are the symptoms of Asthma?") == ["symptom", "asthma"]
 
 
 @pytest.mark.parametrize("typo, fixed", [
-    ("symtoms", "symptoms"), ("asthama", "asthma"), ("dibetes", "diabetes"),
-    ("feaver", "fever"), ("pnemonia", "pneumonia"), ("sings", "signs"),
+    ("symtoms", "symptom"), ("asthama", "asthma"), ("dibetes", "diabetes"),
+    ("feaver", "fever"), ("pnemonia", "pneumonia"), ("hypertenshun", "hypertension"),
 ])
 def test_spelling_is_corrected_to_common_corpus_words(typo, fixed):
     assert retrieval.correct(typo) == ([fixed], [])

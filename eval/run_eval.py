@@ -45,7 +45,8 @@ def main() -> None:
             if row["expected_topic"]:
                 words, _ = retrieval.correct(nlu.understand(row["question"])["clean_query"])
                 top5 = retrieval.search(" ".join(words), k=5)
-                topic_hit = any(p["topic"].lower() == row["expected_topic"].lower() for p in top5)
+                expected = set(retrieval.tokenize(row["expected_topic"]))
+                topic_hit = any(set(retrieval.tokenize(p["topic"])) == expected for p in top5)
                 wanted = set(filter(None, row["expected_qtype"].split(";")))
                 qtype_hit = any(p["qtype"] in wanted for p in top5) if wanted else ""
 
