@@ -1,0 +1,23 @@
+term,mesh_name,note
+diabetes,Diabetes Mellitus,MeSH only lists the full name
+sugar diabetes,Diabetes Mellitus,everyday term
+flu,"Influenza, Human",everyday term
+anaemia,Anemia,British/Indian spelling
+haemorrhoids,Hemorrhoids,British/Indian spelling
+piles,Hemorrhoids,everyday term
+diarrhoea,Diarrhea,British/Indian spelling
+loose motions,Diarrhea,Indian English
+loose motion,Diarrhea,Indian English
+tb,Tuberculosis,everyday abbreviation
+depression,Depressive Disorder,everyday term
+anxiety,Anxiety Disorders,everyday term
+high bp,Hypertension,everyday term
+low bp,Hypotension,everyday term
+high cholesterol,Hypercholesterolemia,everyday term
+acidity,Heartburn,Indian English
+chicken pox,Chickenpox,spelling variant
+kidney stones,Kidney Calculi,everyday term
+kidney stone,Kidney Calculi,everyday term
+uti,Urinary Tract Infections,everyday abbreviation
+covid,COVID-19,everyday term
+corona,COVID-19,everyday term (India)

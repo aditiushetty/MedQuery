@@ -10,3 +10,4 @@ models/
 .env
 data/processed/corpus.jsonl
 data/processed/research.jsonl
+data/processed/mesh_terms.json
