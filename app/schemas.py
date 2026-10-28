@@ -22,8 +22,21 @@ class AskRequest(BaseModel):
 
 
 class Entity(BaseModel):
-    text: str   # e.g. "type 2 diabetes"
-    label: str  # e.g. "DISEASE"
+    text: str          # as written in the question, e.g. "heart attack"
+    label: str         # MeSH branch: disease, mental disorder, drug or chemical, procedure
+    mesh_id: str = ""  # e.g. "D009203"
+    name: str = ""     # MeSH preferred name, e.g. "Myocardial Infarction"
+
+
+class ResearchItem(BaseModel):
+    """A PubMed study about a condition in the question. Shown as research,
+    never as advice: its finding comes from one study population."""
+    id: str
+    question: str    # the study's research question
+    decision: str    # expert yes / no / maybe answer to that question
+    conclusion: str  # the abstract's own conclusion
+    year: str
+    url: str
 
 
 class Source(BaseModel):
@@ -42,4 +55,5 @@ class AskResponse(BaseModel):
     intent: str
     entities: list[Entity] = []
     sources: list[Source] = []
+    research: list[ResearchItem] = []
     disclaimer: str

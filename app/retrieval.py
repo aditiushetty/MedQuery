@@ -4,19 +4,22 @@ BM25 in one paragraph: a passage scores high when it contains the question's
 words, especially RARE words (a word found in few passages, like "asthma",
 counts more than a common word like "disease"), and short passages that
 contain the words beat long ones that mention them once. It matches words,
-not meaning: "heart attack" and "myocardial infarction" do not match. Semantic
-search (Milestone 4) fixes that.
+not meaning: "heart attack" and "myocardial infarction" do not match on their
+own. MeSH synonyms (expand_with_mesh) close part of that gap; semantic search
+(next milestone) closes more.
 
 The index is built once, the first time search() is called (a few seconds).
 """
 import difflib
 import json
 import math
+from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 
 from rank_bm25 import BM25Okapi
 
+from app import mesh
 from app.preprocess import tokenize
 
 CORPUS = Path(__file__).resolve().parent.parent / "data" / "processed" / "corpus.jsonl"
@@ -52,12 +55,19 @@ def _index() -> tuple[list[dict], BM25Okapi]:
 
 
 KNOWN_MIN = 2      # a word in 2+ passages is a real word (1 may be a typo in the source)
-CORRECT_MIN = 50   # we only correct TO common words, so "covid" never becomes "cvid"
+CORRECT_MIN = 50   # we correct TO common words, so "covid" never becomes "cvid" ...
+RARE_CLOSENESS = 0.88  # ... or to rarer medical words only when the spelling is very close
+                       # ("infraction" -> "infarction" is 0.90; "engine" -> "engineer" is 0.86)
 
 
 @lru_cache(maxsize=1)
 def _common_words() -> list[str]:
-    return [w for w, df in _doc_freq().items() if df >= CORRECT_MIN]
+    """Words a typo may be corrected to: common corpus words, plus rarer corpus
+    words that are part of a MeSH medical term ("infarction" is in only a few
+    passages but is a real medical word)."""
+    medical = {w for term in mesh._load()["terms"] for w in tokenize(term)}
+    return [w for w, df in _doc_freq().items()
+            if df >= CORRECT_MIN or (df >= KNOWN_MIN and w in medical)]
 
 
 @lru_cache(maxsize=1)
@@ -75,6 +85,7 @@ def warm_up() -> None:
     _index()
     _common_words()
     _topics()
+    _concept_topics()
 
 
 def correct(query: str) -> tuple[list[str], list[str]]:
@@ -89,12 +100,17 @@ def correct(query: str) -> tuple[list[str], list[str]]:
         if freq.get(w, 0) >= KNOWN_MIN or w.isdigit():
             words.append(w)
             continue
-        # Of the close spellings with the same first letter, take the most common one
-        # ("sings" -> "signs", not "swings"; "cricket" never becomes "rickets").
+        # Of the close spellings with the same first letter ("cricket" never becomes
+        # "rickets"), take the closest; if two are equally close, the more common one
+        # ("infraction" -> "infarction", not "information"; "diabetis" -> "diabetes").
         same_start = [c for c in _common_words() if c[0] == w[0]]
-        close = difflib.get_close_matches(w, same_start, n=10, cutoff=0.8)
+        def closeness(c: str) -> tuple[float, int]:
+            return round(difflib.SequenceMatcher(None, w, c).ratio(), 2), freq[c]
+
+        close = [c for c in difflib.get_close_matches(w, same_start, n=10, cutoff=0.8)
+                 if freq[c] >= CORRECT_MIN or closeness(c)[0] >= RARE_CLOSENESS]
         if close:
-            words.append(max(close, key=lambda c: freq[c]))
+            words.append(max(close, key=closeness))
         else:
             words.append(w)
             unknown.append(w)
@@ -162,6 +178,52 @@ def find_topic(words: list[str]) -> str | None:
             if weight > best_weight:
                 best, best_weight = name, weight
     return best
+
+
+@lru_cache(maxsize=1)
+def _concept_topics() -> dict[str, str]:
+    """MeSH id -> the corpus topic that IS that concept ("D009203" -> "heart attack")."""
+    topics = _topics()
+    out: dict[str, str] = {}
+    for name, (_, idx) in topics.items():
+        found = mesh.find(name)
+        if len(found) == 1 and found[0]["text"].lower() == name:
+            ui = found[0]["ui"]
+            if ui not in out or len(idx) > len(topics[out[ui]][1]):
+                out[ui] = name
+    return out
+
+
+@lru_cache(maxsize=1)
+def _concept_counts() -> Counter:
+    """How many patient passages are tagged with each MeSH id."""
+    return Counter(ui for p in _index()[0] for ui in p.get("mesh_ids", []))
+
+
+def expand_with_mesh(words: list[str], unknown: list[str], entities: list[dict]) -> tuple[list[str], list[str]]:
+    """Search for each MeSH concept the question names by the corpus's own name.
+
+    "paracetamol" -> "acetaminophen" (our US sources' word);
+    "myocardial infarction" -> "heart attack" (our topic name).
+    The user's words are REPLACED, so the evidence check does not count them as
+    missing from passages that use the other name. A word we never saw stops
+    being "unknown" when it belongs to a concept our passages cover. Concepts
+    with no passages (e.g. COVID-19) change nothing.
+    """
+    freq = _doc_freq()
+    words, unknown = list(words), list(unknown)
+    for e in entities:
+        if not _concept_counts().get(e["mesh_id"]):
+            continue
+        alias = [w for w in tokenize(_concept_topics().get(e["mesh_id"], e["name"]))
+                 if freq.get(w, 0) >= KNOWN_MIN]
+        own = set(tokenize(e["text"]))
+        if not alias or set(alias) == own:
+            continue
+        kept = [w for w in words if w not in own]
+        words = kept + [w for w in alias if w not in kept]
+        unknown = [w for w in unknown if w not in own]
+    return words, unknown
 
 
 # NLU intent -> MedQuAD question type, used to prefer passages of the right kind.

@@ -8,8 +8,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app import answer, nlu, retrieval, safety
-from app.schemas import AskRequest, AskResponse, Entity, Source
+from app import answer, nlu, research, retrieval, safety
+from app.schemas import AskRequest, AskResponse, Entity, ResearchItem, Source
 
 NO_EVIDENCE_MESSAGE = (
     "I could not find reliable information about this in my medical sources, "
@@ -37,7 +37,9 @@ def health() -> dict:
 @app.post("/ask", response_model=AskResponse)
 def ask(req: AskRequest) -> AskResponse:
     # 1. Emergencies first: never wait on retrieval or show "low confidence".
-    if safety.is_emergency(req.question):
+    #    A question only ABOUT an urgent condition is answered, numbers first.
+    urgency, phrase = safety.check(req.question)
+    if urgency == "emergency":
         return AskResponse(
             status="emergency",
             answer=safety.EMERGENCY_MESSAGE,
@@ -50,11 +52,13 @@ def ask(req: AskRequest) -> AskResponse:
     query = nlu.understand(req.question)
     entities = [Entity(**e) for e in query["entities"]]
 
-    def reply(status, text, confidence=0.0, sources=()) -> AskResponse:
+    def reply(status, text, confidence=0.0, sources=(), studies=()) -> AskResponse:
+        if urgency == "warning":
+            text = safety.warning_note(phrase) + "\n\n" + text
         return AskResponse(
             status=status, answer=text, confidence=round(confidence, 2),
             intent=query["intent"], entities=entities, sources=list(sources),
-            disclaimer=safety.DISCLAIMER,
+            research=[ResearchItem(**s) for s in studies], disclaimer=safety.DISCLAIMER,
         )
 
     # 3. A question that names nothing ("Is it serious?") cannot be matched to evidence.
@@ -63,6 +67,11 @@ def ask(req: AskRequest) -> AskResponse:
 
     # 4. Fix spelling. Words our sources never mention mean we have no evidence.
     words, unknown = retrieval.correct(query["clean_query"])
+    # Terms only recognisable after spelling correction ("asthama" -> asthma).
+    known = {e.mesh_id for e in entities}
+    entities += [Entity(**e) for e in nlu.entities(" ".join(words)) if e["mesh_id"] not in known]
+    # Add our sources' own names for those terms ("paracetamol" -> "acetaminophen").
+    words, unknown = retrieval.expand_with_mesh(words, unknown, [e.model_dump() for e in entities])
     if unknown:
         return reply(
             "no_evidence",
@@ -101,4 +110,6 @@ def ask(req: AskRequest) -> AskResponse:
                snippet=p["text"], score=p["score"])
         for p in used
     ]
-    return reply(status, "\n\n".join(notes), best, sources)
+    # 7. Studies about the same conditions, shown separately as research.
+    studies = research.related([e.model_dump() for e in entities])
+    return reply(status, "\n\n".join(notes), best, sources, studies)

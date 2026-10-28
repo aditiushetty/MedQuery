@@ -1,4 +1,4 @@
-"""MedQuery chat interface (owner: Member 4).
+"""MedQuery chat interface.
 
 Start the backend first, then run from the project folder:  streamlit run ui/app.py
 """
@@ -25,9 +25,17 @@ st.caption(
 )
 
 
+DECISION_LABELS = {"yes": "Finding: yes", "no": "Finding: no", "maybe": "Finding: unclear"}
+
+
 def show_reply(data: dict) -> None:
     kind, label = STATUS_LABELS.get(data["status"], ("info", data["status"]))
     getattr(st, kind)(label)
+    if data.get("entities"):
+        terms = " · ".join(
+            f"`{e['text']}` → {e['name']} ({e['label']})" for e in data["entities"]
+        )
+        st.caption(f"Medical terms recognised (MeSH): {terms}")
     st.markdown(data["answer"])
     if data["sources"]:
         with st.expander(f"Sources ({len(data['sources'])})"):
@@ -36,6 +44,16 @@ def show_reply(data: dict) -> None:
                 st.caption(s["snippet"])
                 if s["url"]:
                     st.markdown(s["url"])
+    if data.get("research"):
+        with st.expander(f"Related research ({len(data['research'])} PubMed studies)"):
+            st.caption(
+                "Findings from studies of particular groups of people. "
+                "They are research, not advice for you."
+            )
+            for r in data["research"]:
+                st.markdown(f"**{r['question']}** ({r['year']})")
+                st.markdown(f"{DECISION_LABELS.get(r['decision'], r['decision'])}. {r['conclusion']}")
+                st.markdown(r["url"])
     st.caption(f"Intent: {data['intent']} · Confidence: {data['confidence']:.2f}")
 
 
