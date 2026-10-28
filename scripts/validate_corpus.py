@@ -34,6 +34,8 @@ def check(path: Path, minimum: int, extra: list[str]) -> list[str]:
             missing = [k for k in REQUIRED + extra if not row.get(k)]
             if missing:
                 problems.append(f"{path.name} line {line_no}: empty or missing {missing}")
+            if not isinstance(row.get("mesh_ids"), list):  # may be empty, but must exist
+                problems.append(f"{path.name} line {line_no}: no mesh_ids; run scripts/tag_mesh.py")
             if row.get("id") in ids:
                 problems.append(f"{path.name} line {line_no}: duplicate id {row.get('id')}")
             ids.add(row.get("id"))
@@ -48,6 +50,11 @@ def check(path: Path, minimum: int, extra: list[str]) -> list[str]:
 
 def main() -> int:
     problems = []
+    mesh_file = PROCESSED / "mesh_terms.json"
+    if mesh_file.exists():
+        print(f"OK: mesh_terms.json: {len(json.loads(mesh_file.read_text())['terms'])} terms")
+    else:
+        problems.append("mesh_terms.json not found; run scripts/build_mesh.py")
     for name, (minimum, extra) in FILES.items():
         problems += check(PROCESSED / name, minimum, extra)
     for p in problems[:20]:
