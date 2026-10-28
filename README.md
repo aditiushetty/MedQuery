@@ -12,20 +12,31 @@ macOS:
     python3.11 -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt
+    python -m nltk.downloader wordnet
 
 Windows (PowerShell):
 
     py -3.11 -m venv .venv
     .venv\Scripts\Activate.ps1
     pip install -r requirements.txt
+    python -m nltk.downloader wordnet
 
-## Build the knowledge base (once, about 1 minute)
+## Build the knowledge base (once)
+
+Download the three sources (about 20 MB in total):
 
     git clone --depth 1 https://github.com/abachaa/MedQuAD.git data/raw/medquad
-    python scripts/prepare_corpus.py
-    python scripts/validate_corpus.py
+    curl -L --create-dirs -o data/raw/pubmedqa/ori_pqal.json https://raw.githubusercontent.com/pubmedqa/pubmedqa/master/data/ori_pqal.json
+    curl -L --create-dirs -o data/raw/mesh/desc2026.gz https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/desc2026.gz
 
-The corpus file is not stored in Git (28 MB); everyone builds it with these commands. See `docs/datasets.md`.
+Then build and validate everything (about 10 seconds):
+
+    python scripts/build_kb.py
+
+The built files are not stored in Git. What is in the knowledge base, where it
+comes from, its licences and limitations: `docs/datasets.md`.
+
+Try the MeSH normalisation: `python scripts/mesh_lookup.py "Can paracetamol help after a heart attack?"`
 
 ## Run
 
@@ -39,46 +50,52 @@ API test page: http://127.0.0.1:8000/docs
 ## Test
 
     python -m pytest
+    python eval/run_eval.py
 
 ## Status
 
 ✅ implemented and tested · 🟡 baseline or approximate · ⏳ planned
 
-| Feature | Owner | Status |
-|---|---|---|
-| `/ask` API with agreed request/response format | Member 3 | ✅ |
-| Chat interface with loading and error states | Member 4 | ✅ |
-| Emergency keyword check (112 / 108) | Member 3 | ✅ (keyword rule, not triage) |
-| No-evidence fallback and disclaimer | Member 3 | ✅ |
-| Medical corpus (MedQuAD, 23,070 passages, validated) | Member 1 | ✅ |
-| BM25 retrieval, with spelling correction and condition (topic) recognition | Member 3 | ✅ |
-| Semantic and hybrid retrieval | Member 3 | ⏳ |
-| Intent classification (rules, then DistilBERT) | Member 2 | ⏳ (stub returns "general") |
-| Extractive answer: copied sentences with [n] citations, checked by a test | Member 3 | ✅ |
-| Evidence check: coverage score and thresholds -> answered / low confidence / no evidence | Member 3 | 🟡 (word matching, tuned on 32 questions) |
-| Test set | Member 1 | 🟡 (14 of 40 questions) |
-| Evaluation script (`eval/run_eval.py`) | Member 4 | ✅ |
-| Evaluation on held-out questions | Member 4 | ⏳ |
-
-## Who owns what
-
-| Member | Files |
+| Feature | Status |
 |---|---|
-| 1 Data | `scripts/prepare_corpus.py`, `data/`, test questions |
-| 2 NLU | `app/nlu.py`, `training/intent/` |
-| 3 Backend | `app/main.py`, `app/retrieval.py`, `app/safety.py`, `app/schemas.py` |
-| 4 UI & testing | `ui/app.py`, `tests/`, `eval/` |
+| Knowledge base: MedQuAD patient passages (23,070) | ✅ |
+| Knowledge base: PubMedQA research abstracts (1,000) | ✅ stored; ⏳ not yet used in answers |
+| MeSH entity normalisation (18,952 concepts, every passage tagged) | ✅ stored; ⏳ not yet used in search |
+| Preprocessing: tokenisation, stopwords, WordNet lemmatisation | ✅ |
+| One-command build and validation (`scripts/build_kb.py`) | ✅ |
+| `/ask` API with request/response format | ✅ |
+| Chat interface with loading and error states | ✅ |
+| Emergency keyword check (112 / 108) | ✅ (keyword rule, not triage) |
+| No-evidence fallback and disclaimer | ✅ |
+| BM25 retrieval, with spelling correction and condition (topic) recognition | ✅ |
+| Extractive answer: copied sentences with [n] citations, checked by a test | ✅ |
+| Evidence check: coverage score and thresholds -> answered / low confidence / no evidence | 🟡 (word matching, tuned on 31 questions) |
+| Semantic and hybrid retrieval | ⏳ |
+| Intent classification (rules, then DistilBERT) | ⏳ (stub returns "general") |
+| Test set | 🟡 (14 of 40 questions) |
+| Evaluation script (`eval/run_eval.py`) | ✅ |
+| Evaluation on held-out questions | ⏳ |
 
-Change `app/schemas.py` only after the whole team agrees.
+## Project layout
+
+| Folder | What is in it |
+|---|---|
+| `app/` | API (`main.py`), preprocessing, retrieval, answers, MeSH matcher, safety rules |
+| `ui/` | Streamlit chat page |
+| `scripts/` | Knowledge base build, validation and lookup scripts |
+| `data/` | Raw downloads and built files (not in Git), `lay_terms.csv`, `test_questions.csv` |
+| `tests/` | Automated tests (`python -m pytest`) |
+| `eval/` | Evaluation script and saved results |
+| `docs/` | Knowledge base documentation, evidence screenshots |
 
 ## Git routine
 
     git checkout main
     git pull
-    git checkout -b feature/yourname-task
-    # work on your own files
-    git add <your files>
+    git checkout -b feature/short-name
+    # make the change, run the tests
+    git add .
     git commit -m "What you did"
-    git push -u origin feature/yourname-task
+    git push -u origin feature/short-name
 
-Then open a Pull Request on GitHub; a teammate reviews and merges it.
+Then open a Pull Request on GitHub and merge it.
